@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker Elite - Bruno</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --bg-dark: #090a0f;
+            --card-bg: rgba(17, 19, 26, 0.8);
+            --accent-primary: #6366f1;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-dark);
+            color: #f1f5f9;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .habit-progress-bg {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 99px;
+            overflow: hidden;
+            height: 6px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .calendar-day.completed {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: white;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .calendar-day:not(.completed):hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .syncing-indicator {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #10b981;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 99px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="sync-notice" class="syncing-indicator items-center gap-2">
+        <i data-lucide="check" size="18"></i>
+        Sincronizado
+    </div>
+
+    <!-- Barra de Navegación -->
+    <nav class="sticky top-0 z-40 w-full border-b border-white/5 bg-[#090a0f]/80 backdrop-blur-xl px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center rotate-3 shadow-xl shadow-indigo-500/20">
+                    <i data-lucide="flame" class="text-white fill-current"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Habit Tracker</h1>
+                    <p class="text-[10px] uppercase tracking-widest text-indigo-400 font-bold">Bruno Edition</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button id="refresh-btn" class="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 transition-all border border-transparent hover:border-white/10">
+                    <i data-lucide="refresh-cw" size="20"></i>
+                </button>
+                <button class="bg-white text-black px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all shadow-lg">
+                    Nuevo Hábito
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Dashboard Izquierdo -->
+        <div class="lg:col-span-8 space-y-8">
+            
+            <!-- Resumen de Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card p-6 rounded-3xl group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl group-hover:scale-110 transition-transform">
+                            <i data-lucide="zap"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Racha</span>
+                    </div>
+                    <p id="streak-val" class="text-3xl font-bold">--</p>
+                    <p class="text-xs text-slate-500 mt-1">Días consecutivos</p>
+                </div>
+                
+                <div class="glass-card p-6 rounded-3xl group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl group-hover:scale-110 transition-transform">
+                            <i data-lucide="target"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Progreso</span>
+                    </div>
+                    <p id="completion-val" class="text-3xl font-bold">--%</p>
+                    <p class="text-xs text-slate-500 mt-1">Meta del mes</p>
+                </div>
+
+                <div class="glass-card p-6 rounded-3xl group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-amber-500/10 text-amber-400 rounded-2xl group-hover:scale-110 transition-transform">
+                            <i data-lucide="trophy"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Nivel</span>
+                    </div>
+                    <p class="text-3xl font-bold">Pro</p>
+                    <p class="text-xs text-slate-500 mt-1">Próximo: Maestro</p>
+                </div>
+            </div>
+
+            <!-- Lista de Hábitos -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center px-2">
+                    <h2 class="text-lg font-bold">Hábitos del día</h2>
+                    <span class="text-xs text-indigo-400 font-semibold cursor-pointer hover:underline">Ver todos</span>
+                </div>
+                <div id="habits-list" class="grid grid-cols-1 gap-4">
+                    <div class="glass-card p-5 rounded-2xl h-24 loading-shimmer opacity-20"></div>
+                </div>
+            </div>
+
+            <!-- Gráfico -->
+            <div class="glass-card p-8 rounded-[2rem]">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <div>
+                        <h3 class="text-xl font-bold">Análisis de Actividad</h3>
+                        <p class="text-sm text-slate-500">Visualización semanal</p>
+                    </div>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div class="lg:col-span-4 space-y-8">
+            <div class="glass-card p-7 rounded-[2rem]">
+                <h3 class="text-lg font-bold mb-8 text-center">Abril 2026</h3>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-3"></div>
+            </div>
+
+            <div class="glass-card p-8 rounded-[2rem] text-center">
+                <h3 class="text-lg font-bold mb-6">Objetivo Mensual</h3>
+                <div class="relative flex items-center justify-center">
+                    <canvas id="goalChart" width="220" height="220"></canvas>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pt-2">
+                        <span id="goal-pct" class="text-4xl font-black text-white">--%</span>
+                        <span class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Logrado</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // CONFIGURACIÓN: Tu URL de Google Apps Script
+        const SCRIPT_URL = 'TU_URL_DE_APPS_SCRIPT_AQUI';
+
+        let habits = [];
+        let completedDays = [];
+        let weeklyChart, goalChart;
+
+        async function fetchData() {
+            if (SCRIPT_URL.includes('TU_URL')) {
+                habits = [
+                    { id: 1, name: 'Gimnasio PP.FF', icon: '🏋️', color: '#818cf8', progress: 75 },
+                    { id: 2, name: 'Lectura Programación', icon: '💻', color: '#34d399', progress: 45 },
+                    { id: 3, name: 'Beber 2L Agua', icon: '💧', color: '#fbbf24', progress: 90 }
+                ];
+                completedDays = [1, 2, 4, 5, 8, 9, 11, 12, 13, 15];
+                renderUI();
+                return;
+            }
+
+            try {
+                const res = await fetch(SCRIPT_URL);
+                const data = await res.json();
+                habits = data.habits;
+                completedDays = data.completedDays;
+                renderUI();
+            } catch (err) { console.error("Error:", err); }
+        }
+
+        async function syncData() {
+            if (SCRIPT_URL.includes('TU_URL')) return;
+            const notice = document.getElementById('sync-notice');
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'updateDays', completedDays }),
+                    mode: 'no-cors'
+                });
+                notice.style.display = 'flex';
+                setTimeout(() => notice.style.display = 'none', 2000);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderHabits() {
+            const container = document.getElementById('habits-list');
+            container.innerHTML = habits.map(h => `
+                <div class="glass-card p-5 rounded-2xl flex items-center justify-between group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl" style="background: ${h.color}15">
+                            ${h.icon}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-100">${h.name}</h4>
+                            <div class="flex items-center gap-2 mt-1">
+                                <div class="w-32 habit-progress-bg">
+                                    <div class="h-full rounded-full transition-all" style="width: ${h.progress}%; background: ${h.color}"></div>
+                                </div>
+                                <span class="text-[10px] font-bold text-slate-500">${h.progress}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 30; i++) {
+                const isCompleted = completedDays.includes(i);
+                const day = document.createElement('div');
+                day.className = `calendar-day cursor-pointer ${isCompleted ? 'completed' : 'text-slate-500'}`;
+                day.innerText = i;
+                day.onclick = () => {
+                    if (completedDays.includes(i)) completedDays = completedDays.filter(d => d !== i);
+                    else completedDays.push(i);
+                    renderCalendar();
+                    updateCharts();
+                    syncData();
+                };
+                grid.appendChild(day);
+            }
+            const pct = Math.round((completedDays.length / 30) * 100);
+            document.getElementById('completion-val').innerText = pct + '%';
+            document.getElementById('goal-pct').innerText = pct + '%';
+            document.getElementById('streak-val').innerText = completedDays.length;
+        }
+
+        function initCharts() {
+            const ctxW = document.getElementById('weeklyChart').getContext('2d');
+            weeklyChart = new Chart(ctxW, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
+                    datasets: [{
+                        data: [4, 6, 3, 8, 5, 9, 7],
+                        borderColor: '#6366f1',
+                        borderWidth: 4,
+                        tension: 0.45,
+                        fill: true,
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#64748b' } } }
+                }
+            });
+
+            const ctxG = document.getElementById('goalChart').getContext('2d');
+            goalChart = new Chart(ctxG, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [completedDays.length, 30 - completedDays.length],
+                        backgroundColor: ['#6366f1', 'rgba(255,255,255,0.03)'],
+                        borderWidth: 0,
+                        borderRadius: 20
+                    }]
+                },
+                options: { cutout: '88%', responsive: false, plugins: { tooltip: { enabled: false } } }
+            });
+        }
+
+        function updateCharts() {
+            if (goalChart) {
+                goalChart.data.datasets[0].data = [completedDays.length, 30 - completedDays.length];
+                goalChart.update();
+            }
+        }
+
+        function renderUI() {
+            renderHabits();
+            renderCalendar();
+            if (!weeklyChart) initCharts();
+            else updateCharts();
+        }
+
+        document.getElementById('refresh-btn').onclick = fetchData;
+        window.onload = fetchData;
+    </script>
+</body>
+</html>
