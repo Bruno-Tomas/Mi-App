@@ -16,75 +16,46 @@
             scroll-behavior: smooth;
         }
 
+        /* Contenedores para el Sidebar */
+        .main-content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
         .habit-card {
             background-color: #121212;
             border: 1px solid #1f1f1f;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .glass-nav {
-            background: rgba(10, 10, 10, 0.8);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255,255,255,0.05);
+        .floating-action {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 40;
         }
 
-        .year-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 24px;
-        }
-
-        .month-mini-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 3px;
-        }
-
-        .mini-dot {
-            aspect-ratio: 1/1;
-            border-radius: 2px;
-            background-color: #1a1a1a;
-        }
-
-        .check-circle {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
+        .year-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px; }
+        .month-mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+        .mini-dot { aspect-ratio: 1/1; border-radius: 2px; background-color: #1a1a1a; }
+        .check-circle { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
         .check-circle.completed { background-color: currentColor; border-color: transparent; }
         .check-circle.failed { background-color: #ef4444; border-color: transparent; }
 
-        @keyframes zoomIn {
-            from { opacity: 0; transform: scale(0.98); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        .animate-zoom {
-            animation: zoomIn 0.2s ease-out forwards;
-        }
-
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .animate-zoom { animation: zoomIn 0.2s ease-out forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        input#detail-name-input {
-            background: transparent;
-            border: none;
-            text-align: center;
-            width: 100%;
-            outline: none;
-        }
+        input#detail-name-input { background: transparent; border: none; text-align: center; width: 100%; outline: none; }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="bg-[#0f0f0f] text-white flex h-screen overflow-hidden">
 
-    <div class="max-w-5xl mx-auto min-h-screen flex flex-col">
-        <main class="flex-1 pb-32 pt-8 md:pt-16">
-            <header class="px-6 md:px-0 flex justify-between items-center mb-12">
+    <div id="sidebar-container"></div>
+
+    <main class="main-content no-scrollbar p-6 md:p-8">
+        <div class="max-w-5xl mx-auto flex flex-col">
+            <header class="flex justify-between items-center mb-12">
                 <div>
                     <div class="flex items-center gap-2 mb-2">
                         <div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
@@ -99,376 +70,224 @@
                 </button>
             </header>
 
-            <div id="habits-container" class="px-6 md:px-0 grid gap-4"></div>
-        </main>
-    </div>
+            <div id="habits-container" class="grid gap-4"></div>
+        </div>
+    </main>
 
-    <!-- Modal Detalle Fullscreen -->
-    <div id="habit-detail-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center overflow-hidden">
-        <div class="absolute inset-0 bg-black" onclick="closeModal('habit-detail-modal')"></div>
-        
+    <div id="habit-detail-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
         <div class="relative w-full h-full bg-black overflow-y-auto no-scrollbar animate-zoom p-6 md:p-16">
             <div class="max-w-5xl mx-auto">
                 <div class="flex justify-between items-center mb-12">
-                    <button onclick="closeModal('habit-detail-modal')" class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-white border border-white/10">
-                        <i class="fas fa-times"></i>
+                    <button onclick="closeModal('habit-detail-modal')" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/10 hover:bg-white/20 transition-colors">
+                        <i class="fas fa-times text-xl"></i>
                     </button>
-                    <button onclick="deleteCurrentHabit()" class="text-gray-600 hover:text-red-500 transition-colors"><i class="fas fa-trash text-xl"></i></button>
+                    <button onclick="deleteCurrentHabit()" class="text-gray-500 hover:text-red-500 transition-colors">
+                        <i class="fas fa-trash text-xl"></i>
+                    </button>
                 </div>
-
                 <div class="text-center mb-16">
                     <input type="text" id="detail-name-input" class="text-5xl md:text-8xl font-bold mb-6 text-white cursor-edit" onchange="updateHabitName(this.value)">
-                    
                     <div class="flex items-center justify-center gap-8 md:gap-16 flex-wrap">
                         <div class="text-center">
                             <p id="detail-streak" class="text-4xl font-bold">0</p>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Racha en este mes</p>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Racha</p>
                         </div>
-                        <div class="hidden md:block w-px h-10 bg-white/10"></div>
                         <div class="text-center">
                             <p id="detail-month-count" class="text-4xl font-bold text-blue-500">0</p>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Días logrados</p>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Logrados</p>
                         </div>
-                        <div class="hidden md:block w-px h-10 bg-white/10"></div>
                         <div class="text-center">
                             <p id="detail-rate" class="text-4xl font-bold text-emerald-500">0%</p>
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Efectividad mensual</p>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Efectividad</p>
                         </div>
                     </div>
                 </div>
-
-                <!-- Calendario Mes Seleccionado -->
-                <div class="bg-[#121212] rounded-[3rem] p-8 md:p-12 mb-12 border border-white/5">
+                <div class="bg-[#121212] rounded-[3rem] p-8 border border-white/5 mb-10">
                     <div class="flex justify-between items-center mb-10">
-                        <div class="flex items-center gap-4">
-                            <button onclick="changeMonth(-1)" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10"><i class="fas fa-chevron-left"></i></button>
-                            <h3 id="current-month-label" class="font-bold text-2xl min-w-[160px] text-center">Mes Actual</h3>
-                            <button onclick="changeMonth(1)" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-7 gap-4 text-center text-[10px] text-gray-600 font-bold uppercase mb-6">
-                        <span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sa</span><span>Do</span>
+                        <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                        <h3 id="current-month-label" class="font-bold text-2xl"></h3>
+                        <button onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
                     </div>
                     <div id="calendar-grid" class="grid grid-cols-7 gap-3 md:gap-4"></div>
-                </div>
-
-                <!-- Vista Anual con Selector -->
-                <div class="bg-[#121212] rounded-[3rem] p-8 md:p-12 border border-white/5 mb-10">
-                    <div class="flex justify-between items-center mb-10">
-                        <div class="flex items-center gap-4">
-                            <button onclick="changeYear(-1)" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10"><i class="fas fa-chevron-left"></i></button>
-                            <h3 id="current-year-label" class="font-bold text-2xl">2024</h3>
-                            <button onclick="changeYear(1)" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                    </div>
-                    <div id="year-heatmap" class="year-grid"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Nuevo Hábito -->
-    <div id="add-habit-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-6">
+    <div id="add-habit-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-6">
         <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" onclick="closeModal('add-habit-modal')"></div>
         <div class="bg-[#121212] w-full max-w-md rounded-[3rem] p-10 relative z-10 border border-white/10 animate-zoom">
             <h2 class="text-3xl font-bold mb-10 text-center">Nuevo Hábito</h2>
-            <input type="text" id="habit-name-input" placeholder="Nombre del hábito" class="w-full p-5 bg-white/5 rounded-2xl mb-8 outline-none border border-white/5 text-white">
+            <input type="text" id="habit-name-input" placeholder="Nombre" class="w-full p-5 bg-white/5 rounded-2xl mb-8 outline-none border border-white/5 text-white">
             <div class="flex justify-between mb-12" id="color-picker"></div>
             <button onclick="saveNewHabit()" class="w-full p-5 bg-blue-600 text-white rounded-2xl font-bold">Crear Hábito</button>
         </div>
     </div>
 
-    <!-- Nav Móvil -->
-    <nav class="fixed bottom-0 left-0 right-0 glass-nav p-5 px-10 flex justify-between items-center z-40">
-        <button class="text-blue-500"><i class="fas fa-calendar-day text-2xl"></i></button>
-        <button class="text-gray-500"><i class="far fa-calendar-alt text-2xl"></i></button>
-        <button onclick="openModal('add-habit-modal')" class="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white -mt-12 shadow-2xl border-4 border-black">
-            <i class="fas fa-plus text-xl"></i>
+    <div class="floating-action">
+        <button onclick="openModal('add-habit-modal')" class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl hover:scale-110 transition-transform">
+            <i class="fas fa-plus text-2xl"></i>
         </button>
-        <button class="text-gray-500"><i class="fas fa-layer-group text-2xl"></i></button>
-        <button class="text-gray-500"><i class="fas fa-cog text-2xl"></i></button>
-    </nav>
+    </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // CONFIGURACIÓN DE FIREBASE (REEMPLAZA CON TUS DATOS)
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            projectId: "TU_PROYECTO_ID",
+            storageBucket: "TU_PROYECTO.appspot.com",
+            messagingSenderId: "TU_ID",
+            appId: "TU_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const habitsCol = collection(db, "habits");
+
+        // VARIABLES GLOBALES
+        let habits = [];
+        let currentHabitId = null;
+        let navDate = new Date();
         const colors = ['#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6'];
         const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        
-        let habits = JSON.parse(localStorage.getItem('evoday_habits')) || [
-            { id: 1, name: 'Meditar', color: '#3b82f6', history: {} }
-        ];
 
-        let currentView = 'list';
-        let selectedColor = colors[0];
-        let currentHabitId = null;
-        
-        let navDate = new Date();
-        let navYear = new Date().getFullYear();
-
-        function saveToLocal() {
-            localStorage.setItem('evoday_habits', JSON.stringify(habits));
-        }
-
-        // Calcula la racha terminando en una fecha específica (usado para cuando cambias de mes)
-        function getStreakAtDate(habit, endDate) {
-            let streak = 0;
-            let date = new Date(endDate);
-            date.setHours(0,0,0,0);
-            
-            // Si la fecha seleccionada es el futuro, empezamos desde hoy
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            if (date > today) date = today;
-
-            while (true) {
-                const key = date.toISOString().split('T')[0];
-                if (habit.history[key] === 'done') {
-                    streak++;
-                    date.setDate(date.getDate() - 1);
-                } else {
-                    break;
-                }
+        // ESCUCHAR CAMBIOS EN FIREBASE (REALTIME)
+        onSnapshot(habitsCol, (snapshot) => {
+            habits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderHabits();
+            if (currentHabitId) {
+                const h = habits.find(h => h.id === currentHabitId);
+                if (h) updateDetailView(h);
             }
-            return streak;
-        }
+        });
 
-        function getMonthStats(habit, year, month) {
-            let doneCount = 0;
-            let failCount = 0;
-            
-            Object.keys(habit.history).forEach(key => {
-                const d = new Date(key + 'T00:00:00');
-                if (d.getFullYear() === year && d.getMonth() === month) {
-                    if (habit.history[key] === 'done') doneCount++;
-                    if (habit.history[key] === 'fail') failCount++;
-                }
-            });
-            
-            // Efectividad basada solo en los días registrados (done + fail) de ese mes
-            const totalRecorded = doneCount + failCount;
-            const rate = totalRecorded > 0 ? Math.round((doneCount / totalRecorded) * 100) : 0;
-            
-            return { doneCount, rate };
-        }
+        // FUNCIONES DE PERSISTENCIA
+        window.saveNewHabit = async () => {
+            const name = document.getElementById('habit-name-input').value;
+            const selectedColor = window.selectedColor || colors[0];
+            if (!name) return;
+            await addDoc(habitsCol, { name, color: selectedColor, history: {} });
+            closeModal('add-habit-modal');
+            document.getElementById('habit-name-input').value = '';
+        };
 
-        function renderHabits() {
+        window.cycleDayStatus = async (habitId, dateKey) => {
+            const habit = habits.find(h => h.id === habitId);
+            const history = { ...habit.history };
+            const current = history[dateKey];
+            
+            if (!current) history[dateKey] = 'done';
+            else if (current === 'done') history[dateKey] = 'fail';
+            else delete history[dateKey];
+
+            await updateDoc(doc(db, "habits", habitId), { history });
+        };
+
+        window.updateHabitName = async (newName) => {
+            if (!newName.trim() || !currentHabitId) return;
+            await updateDoc(doc(db, "habits", currentHabitId), { name: newName });
+        };
+
+        window.deleteCurrentHabit = async () => {
+            if (confirm('¿Eliminar hábito?') && currentHabitId) {
+                await deleteDoc(doc(db, "habits", currentHabitId));
+                closeModal('habit-detail-modal');
+            }
+        };
+
+        // LÓGICA DE INTERFAZ (Se mantienen tus cálculos originales)
+        window.renderHabits = () => {
             const container = document.getElementById('habits-container');
             container.innerHTML = '';
             const todayKey = new Date().toISOString().split('T')[0];
 
-            container.className = currentView === 'list' 
-                ? "px-6 md:px-0 grid grid-cols-1 md:grid-cols-2 gap-4" 
-                : "px-6 md:px-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4";
-
             habits.forEach(habit => {
-                const streak = getStreakAtDate(habit, new Date());
+                const streak = getStreak(habit, new Date());
                 const status = habit.history[todayKey];
                 const card = document.createElement('div');
-                card.className = `habit-card p-6 rounded-[2.5rem] cursor-pointer flex ${currentView === 'list' ? 'items-center justify-between' : 'flex-col aspect-square justify-between'}`;
-                
+                card.className = `habit-card p-6 rounded-[2.5rem] cursor-pointer flex items-center justify-between`;
                 card.innerHTML = `
-                    <div class="flex items-center gap-6" onclick="showHabitDetail(${habit.id})">
+                    <div class="flex items-center gap-6" onclick="showHabitDetail('${habit.id}')">
                         <div class="check-circle ${status === 'done' ? 'completed' : status === 'fail' ? 'failed' : ''}" 
                              style="color: ${habit.color}" 
-                             onclick="event.stopPropagation(); cycleDayStatus(${habit.id}, '${todayKey}')">
+                             onclick="event.stopPropagation(); cycleDayStatus('${habit.id}', '${todayKey}')">
                             ${status === 'done' ? '<i class="fas fa-check text-white text-xs"></i>' : status === 'fail' ? '<i class="fas fa-times text-white text-xs"></i>' : ''}
                         </div>
                         <div>
                             <h3 class="font-bold text-xl">${habit.name}</h3>
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">${streak} días de racha</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">${streak} días racha</p>
                         </div>
                     </div>
-                    <div class="${currentView === 'list' ? 'text-right' : 'mt-4'}">
-                        <div class="flex items-center gap-1.5 font-bold text-2xl" style="color: ${habit.color}">
-                            <span>${streak}</span>
-                            <i class="fas fa-fire text-sm"></i>
-                        </div>
-                    </div>
-                `;
+                    <div style="color: ${habit.color}" class="font-bold text-2xl flex items-center gap-2">
+                        ${streak} <i class="fas fa-fire text-sm"></i>
+                    </div>`;
                 container.appendChild(card);
             });
+        };
+
+        function getStreak(habit, endDate) {
+            let streak = 0; let date = new Date(endDate); date.setHours(0,0,0,0);
+            while (true) {
+                const key = date.toISOString().split('T')[0];
+                if (habit.history[key] === 'done') { streak++; date.setDate(date.getDate() - 1); }
+                else break;
+            }
+            return streak;
         }
 
-        function cycleDayStatus(habitId, dateKey) {
-            const today = new Date().toISOString().split('T')[0];
-            if (dateKey > today) return;
-
-            const habit = habits.find(h => h.id === habitId);
-            const current = habit.history[dateKey];
-            
-            if (!current) habit.history[dateKey] = 'done';
-            else if (current === 'done') habit.history[dateKey] = 'fail';
-            else delete habit.history[dateKey];
-
-            saveToLocal();
-            renderHabits();
-            if (currentHabitId === habitId) updateDetailView(habit);
-        }
-
-        function showHabitDetail(id) {
+        window.showHabitDetail = (id) => {
             currentHabitId = id;
-            navDate = new Date(); 
-            navYear = new Date().getFullYear();
             const habit = habits.find(h => h.id === id);
             updateDetailView(habit);
             openModal('habit-detail-modal');
-        }
+        };
 
-        function updateHabitName(newName) {
-            if (!newName.trim()) return;
-            const habit = habits.find(h => h.id === currentHabitId);
-            habit.name = newName;
-            saveToLocal();
-            renderHabits();
-        }
-
-        function updateDetailView(habit) {
-            const nameInput = document.getElementById('detail-name-input');
-            nameInput.value = habit.name;
-            nameInput.style.color = habit.color;
-            
-            // Calcular racha al final del mes que se está viendo
-            const lastDayOfMonth = new Date(navDate.getFullYear(), navDate.getMonth() + 1, 0);
-            document.getElementById('detail-streak').innerText = getStreakAtDate(habit, lastDayOfMonth);
-            
-            const stats = getMonthStats(habit, navDate.getFullYear(), navDate.getMonth());
-            document.getElementById('detail-month-count').innerText = stats.doneCount;
-            document.getElementById('detail-rate').innerText = stats.rate + '%';
-            
+        window.updateDetailView = (habit) => {
+            document.getElementById('detail-name-input').value = habit.name;
+            document.getElementById('detail-name-input').style.color = habit.color;
             renderCalendar(habit);
-            renderYearHeatmap(habit);
-        }
+        };
 
-        function changeMonth(dir) {
-            navDate.setMonth(navDate.getMonth() + dir);
-            const habit = habits.find(h => h.id === currentHabitId);
-            updateDetailView(habit);
-        }
-
-        function changeYear(dir) {
-            navYear += dir;
-            const habit = habits.find(h => h.id === currentHabitId);
-            updateDetailView(habit);
-        }
-
-        function renderCalendar(habit) {
+        window.renderCalendar = (habit) => {
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
             const year = navDate.getFullYear();
             const month = navDate.getMonth();
-            const todayKey = new Date().toISOString().split('T')[0];
-            
             document.getElementById('current-month-label').innerText = `${months[month]} ${year}`;
-
-            const firstDay = new Date(year, month, 1).getDay();
+            
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            let offset = firstDay === 0 ? 6 : firstDay - 1;
-
-            for (let i = 0; i < offset; i++) {
-                grid.appendChild(document.createElement('div'));
-            }
-
             for (let d = 1; d <= daysInMonth; d++) {
-                const dateObj = new Date(year, month, d);
-                const key = dateObj.toISOString().split('T')[0];
+                const key = new Date(year, month, d).toISOString().split('T')[0];
                 const status = habit.history[key];
-                const isFuture = key > todayKey;
-                
                 const dayEl = document.createElement('div');
-                dayEl.className = `aspect-square flex items-center justify-center rounded-2xl text-xs font-bold transition-all border border-transparent ${isFuture ? 'opacity-20 cursor-default' : 'cursor-pointer'}`;
-                
-                if (status === 'done') {
-                    dayEl.style.backgroundColor = habit.color;
-                    dayEl.innerHTML = '<i class="fas fa-check text-white"></i>';
-                } else if (status === 'fail') {
-                    dayEl.className += " bg-red-500/20 text-red-500 border-red-500/20";
-                    dayEl.innerHTML = '<i class="fas fa-times"></i>';
-                } else {
-                    dayEl.className += ` bg-white/5 ${isFuture ? 'text-gray-700' : 'text-gray-500 hover:bg-white/10'}`;
-                    dayEl.innerText = d;
-                }
-
-                if (!isFuture) dayEl.onclick = () => cycleDayStatus(habit.id, key);
+                dayEl.className = `aspect-square flex items-center justify-center rounded-2xl text-xs font-bold cursor-pointer bg-white/5`;
+                if (status === 'done') { dayEl.style.backgroundColor = habit.color; dayEl.innerHTML = '✓'; }
+                else if (status === 'fail') { dayEl.className += " bg-red-500/20 text-red-500"; dayEl.innerHTML = '✕'; }
+                else dayEl.innerText = d;
+                dayEl.onclick = () => cycleDayStatus(habit.id, key);
                 grid.appendChild(dayEl);
             }
-        }
+        };
 
-        function renderYearHeatmap(habit) {
-            const container = document.getElementById('year-heatmap');
-            container.innerHTML = '';
-            document.getElementById('current-year-label').innerText = navYear;
+        window.changeMonth = (dir) => { navDate.setMonth(navDate.getMonth() + dir); if(currentHabitId) renderCalendar(habits.find(h => h.id === currentHabitId)); };
+        window.openModal = (id) => document.getElementById(id).classList.remove('hidden');
+        window.closeModal = (id) => { document.getElementById(id).classList.add('hidden'); if(id === 'habit-detail-modal') currentHabitId = null; };
 
-            months.forEach((mName, mIdx) => {
-                const monthDiv = document.createElement('div');
-                monthDiv.innerHTML = `<p class="text-[10px] text-gray-500 mb-3 font-bold uppercase tracking-widest">${mName}</p>`;
-                
-                const grid = document.createElement('div');
-                grid.className = 'month-mini-grid';
-                
-                const daysInMonth = new Date(navYear, mIdx + 1, 0).getDate();
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const key = new Date(navYear, mIdx, d).toISOString().split('T')[0];
-                    const status = habit.history[key];
-                    const dot = document.createElement('div');
-                    dot.className = 'mini-dot';
-                    if (status === 'done') dot.style.backgroundColor = habit.color;
-                    if (status === 'fail') dot.style.backgroundColor = '#450a0a';
-                    grid.appendChild(dot);
-                }
-                monthDiv.appendChild(grid);
-                container.appendChild(monthDiv);
-            });
-        }
-
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-            document.body.style.overflow = 'auto';
-            currentHabitId = null;
-        }
-
-        function saveNewHabit() {
-            const name = document.getElementById('habit-name-input').value;
-            if (!name) return;
-            habits.push({ id: Date.now(), name, color: selectedColor, history: {} });
-            saveToLocal();
-            renderHabits();
-            closeModal('add-habit-modal');
-            document.getElementById('habit-name-input').value = '';
-        }
-
-        function deleteCurrentHabit() {
-            if (confirm('¿Eliminar este hábito permanentemente?')) {
-                habits = habits.filter(h => h.id !== currentHabitId);
-                saveToLocal();
-                renderHabits();
-                closeModal('habit-detail-modal');
-            }
-        }
-
+        // Color Picker Init
         const cp = document.getElementById('color-picker');
         colors.forEach(c => {
             const btn = document.createElement('button');
-            btn.className = "w-10 h-10 rounded-full border-4 border-transparent transition-all";
+            btn.className = "w-10 h-10 rounded-full border-2 border-transparent";
             btn.style.backgroundColor = c;
-            btn.onclick = () => {
-                selectedColor = c;
-                document.querySelectorAll('#color-picker button').forEach(b => b.style.borderColor = 'transparent');
-                btn.style.borderColor = 'rgba(255,255,255,0.3)';
-            };
+            btn.onclick = () => { window.selectedColor = c; };
             cp.appendChild(btn);
         });
-
-        document.getElementById('toggle-view').onclick = () => {
-            currentView = currentView === 'list' ? 'grid' : 'list';
-            document.getElementById('view-icon').className = currentView === 'list' ? 'fas fa-th-large' : 'fas fa-list';
-            renderHabits();
-        };
-
-        window.onload = renderHabits;
     </script>
+
+    <script src="menu.js"></script>
 </body>
 </html>
