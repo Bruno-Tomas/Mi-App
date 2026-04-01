@@ -1,217 +1,239 @@
 <!DOCTYPE html>
-
-<body class="bg-[#0f0f0f] text-white flex h-screen overflow-hidden">
-
-    <div id="sidebar-container"></div>
-
-    <main class="flex-1 overflow-y-auto p-8">
-        </main>
-
-    <script src="menu.js"></script>
-</body>
-
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Búnker - Mis Hábitos</title>
+    <title>Habit Tracker Pro - Bruno</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- Lucide Icons para los iconos modernos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f0f0f; color: white; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
-        .habit-card:hover { border-color: #404040; transform: translateY(-2px); }
-        .modal-bg { background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); }
+        body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #e2e8f0; }
+        .glass-card { background: rgba(22, 25, 31, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #312e81; border-radius: 10px; }
+        .habit-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
+        .calendar-day.completed { background-color: #4f46e5; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
 
-    <!-- SIDEBAR (Usando el contenedor para menu.js) -->
-    <div id="sidebar-container"></div>
+    <div id="sidebar-container" class="shrink-0 h-full overflow-y-auto"></div>
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 flex flex-col min-w-0 bg-[#0f1115]">
         
-        <!-- Header -->
-        <header class="p-8 flex justify-between items-center border-b border-[#262626]">
-            <div>
-                <h1 class="text-3xl font-bold tracking-tight">Mis Hábitos</h1>
-                <p class="text-[#636363] mt-1">Sigue tu progreso diario, Bruno.</p>
-            </div>
-            <button onclick="openModal()" class="bg-white text-black hover:bg-gray-200 px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all">
-                <i data-lucide="plus" class="w-5 h-5"></i>
-                Nuevo Hábito
-            </button>
-        </header>
-
-        <!-- Grid de Hábitos -->
-        <div id="habits-grid" class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 align-start">
-            <!-- Los hábitos se cargarán aquí -->
-            <div id="loading-state" class="col-span-full py-20 text-center text-[#444]">
-                <div class="animate-pulse flex flex-col items-center">
-                    <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-4"></i>
-                    <p>Sincronizando con el Búnker...</p>
+        <header class="flex items-center justify-between p-6 border-b border-white/5 bg-[#16191f]/80 backdrop-blur-md shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="check-circle-2" class="text-white"></i>
                 </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- MODAL PARA CREAR HÁBITO -->
-    <div id="habitModal" class="hidden fixed inset-0 z-[100] modal-bg flex items-center justify-center p-4">
-        <div class="bg-[#161616] border border-[#262626] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-            <div class="p-6 border-b border-[#262626] flex justify-between items-center">
-                <h3 class="text-xl font-bold">Crear hábito</h3>
-                <button onclick="closeModal()" class="text-[#636363] hover:text-white"><i data-lucide="x"></i></button>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Hábito Pro</h1>
+                    <p class="text-xs text-slate-500">Dashboard de Bruno</p>
+                </div>
             </div>
             
-            <form id="habitForm" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-[#636363] uppercase mb-1">Nombre del hábito</label>
-                    <input type="text" id="habitName" required placeholder="Ej: Leer, Gimnasio..." 
-                        class="w-full bg-[#0f0f0f] border border-[#262626] rounded-xl p-3 focus:outline-none focus:border-blue-500 transition-all">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-[#636363] uppercase mb-1">Frecuencia</label>
-                        <select id="habitFreq" class="w-full bg-[#0f0f0f] border border-[#262626] rounded-xl p-3 focus:outline-none">
-                            <option value="diario">Diario</option>
-                            <option value="semanal">Semanal</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-[#636363] uppercase mb-1">Icono</label>
-                        <select id="habitIcon" class="w-full bg-[#0f0f0f] border border-[#262626] rounded-xl p-3 focus:outline-none text-xl">
-                            <option value="book">📖</option>
-                            <option value="dumbbell">💪</option>
-                            <option value="droplets">💧</option>
-                            <option value="zap">⚡</option>
-                            <option value="coffee">☕</option>
-                            <option value="brain">🧠</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold transition-all mt-4">
-                    Guardar hábito
+            <div class="flex items-center gap-4">
+                <button onclick="openHabitModal()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-all shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="plus" size="18"></i>
+                    <span class="hidden sm:inline font-medium">Nuevo Hábito</span>
                 </button>
-            </form>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[2px]">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bruno" class="rounded-full bg-[#1c2128]" alt="Avatar">
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto custom-scrollbar p-6">
+            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <div class="lg:col-span-8 space-y-8">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+                            <div class="p-3 bg-emerald-500/10 rounded-xl text-emerald-500"><i data-lucide="trending-up"></i></div>
+                            <div><p class="text-sm text-slate-400">Racha Actual</p><p id="stat-racha" class="text-2xl font-bold">0 Días</p></div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+                            <div class="p-3 bg-indigo-500/10 rounded-xl text-indigo-500"><i data-lucide="award"></i></div>
+                            <div><p class="text-sm text-slate-400">Hábitos Activos</p><p id="stat-hoy" class="text-2xl font-bold">0</p></div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+                            <div class="p-3 bg-amber-500/10 rounded-xl text-amber-500"><i data-lucide="zap"></i></div>
+                            <div><p class="text-sm text-slate-400">Energía</p><p class="text-2xl font-bold">High</p></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <i data-lucide="layout-grid" class="text-indigo-400" size="20"></i>
+                            Mis Hábitos
+                        </h2>
+                        <div id="habits-container" class="grid grid-cols-1 gap-4">
+                            </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h3 class="font-bold text-lg mb-6">Actividad Semanal</h3>
+                        <div class="h-64"><canvas id="weeklyChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h3 class="font-bold text-lg mb-6">Calendario</h3>
+                        <div id="calendar-grid" class="grid grid-cols-7 gap-2 text-center text-[10px]">
+                            <span class="text-slate-500">LU</span><span class="text-slate-500">MA</span><span class="text-slate-500">MI</span><span class="text-slate-500">JU</span><span class="text-slate-500">VI</span><span class="text-slate-500">SA</span><span class="text-slate-500">DO</span>
+                            </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl text-center">
+                        <h3 class="font-bold text-lg mb-4">Meta Mensual</h3>
+                        <div class="relative inline-flex items-center justify-center">
+                            <canvas id="goalChart" width="160" height="160"></canvas>
+                            <div class="absolute flex flex-col items-center">
+                                <span class="text-2xl font-bold">78%</span>
+                                <span class="text-[9px] text-slate-500 uppercase">Logrado</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-indigo-600 to-purple-600 p-6 rounded-2xl text-white shadow-xl">
+                        <p class="text-sm font-medium italic">"No te detengas hasta sentirte orgulloso, Bruno. Cada día cuenta."</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-habit" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#16191f] border border-white/10 w-full max-w-md rounded-3xl p-8">
+            <h3 class="text-xl font-bold mb-6">Nuevo Hábito</h3>
+            <div class="space-y-4">
+                <input type="text" id="habit-name" placeholder="Nombre (ej: Meditar)" class="w-full bg-black/20 border border-white/10 p-3 rounded-xl focus:border-indigo-500 outline-none text-white">
+                <input type="text" id="habit-icon" placeholder="Emoji (ej: 🧘)" class="w-full bg-black/20 border border-white/10 p-3 rounded-xl focus:border-indigo-500 outline-none text-2xl">
+                <button onclick="saveNewHabit()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold hover:bg-indigo-500 transition-all text-white">Crear Hábito</button>
+                <button onclick="closeHabitModal()" class="w-full text-slate-500 text-sm">Cancelar</button>
+            </div>
         </div>
     </div>
 
-    <!-- SCRIPTS -->
     <script src="menu.js"></script>
     <script type="module">
         import { db } from './firebaseConfig.js';
         import { collection, addDoc, query, onSnapshot, orderBy, updateDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Inicializar iconos de Lucide
+        // Inicializar iconos
         lucide.createIcons();
 
-        const modal = document.getElementById('habitModal');
-        window.openModal = () => modal.classList.remove('hidden');
-        window.closeModal = () => modal.classList.add('hidden');
+        // Modales
+        window.openHabitModal = () => document.getElementById('modal-habit').classList.remove('hidden');
+        window.closeHabitModal = () => document.getElementById('modal-habit').classList.add('hidden');
 
-        // Función para renderizar los círculos de progreso (como en el video)
-        function renderProgressDots(count = 0) {
-            let dots = '';
-            for(let i = 0; i < 5; i++) {
-                const isActive = i < count;
-                dots += `<div class="w-2.5 h-2.5 rounded-full ${isActive ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-[#262626]'}"></div>`;
-            }
-            return dots;
-        }
-
-        // Agregar Hábito a Firebase
-        document.getElementById('habitForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('habitName').value;
-            const freq = document.getElementById('habitFreq').value;
-            const icon = document.getElementById('habitIcon').options[document.getElementById('habitIcon').selectedIndex].text;
+        // Guardar Hábito en Firebase
+        window.saveNewHabit = async () => {
+            const name = document.getElementById('habit-name').value;
+            const icon = document.getElementById('habit-icon').value;
+            if(!name || !icon) return;
 
             try {
                 await addDoc(collection(db, "habitos"), {
                     nombre: name,
-                    frecuencia: freq,
                     icono: icon,
                     progreso: 0,
                     racha: 0,
                     creado: serverTimestamp()
                 });
-                document.getElementById('habitForm').reset();
-                closeModal();
-            } catch (err) {
-                console.error("Error guardando:", err);
-            }
-        });
+                document.getElementById('habit-name').value = '';
+                document.getElementById('habit-icon').value = '';
+                closeHabitModal();
+            } catch (e) { console.error(e); }
+        };
 
-        // Escuchar cambios en tiempo real
+        // Escuchar datos en Tiempo Real
         const q = query(collection(db, "habitos"), orderBy("creado", "desc"));
         onSnapshot(q, (snapshot) => {
-            const grid = document.getElementById('habits-grid');
-            grid.innerHTML = '';
-            
-            if(snapshot.empty) {
-                grid.innerHTML = `<div class="col-span-full text-center text-[#444] py-20">No hay hábitos aún. ¡Crea el primero!</div>`;
-            }
+            const container = document.getElementById('habits-container');
+            container.innerHTML = '';
+            let total = 0;
+            let bestRacha = 0;
 
-            snapshot.forEach((hDoc) => {
-                const h = hDoc.data();
-                const id = hDoc.id;
+            snapshot.forEach(docSnap => {
+                const h = docSnap.data();
+                const id = docSnap.id;
+                total++;
+                if(h.racha > bestRacha) bestRacha = h.racha;
 
                 const card = document.createElement('div');
-                card.className = "habit-card bg-[#161616] border border-[#262626] p-6 rounded-2xl transition-all flex flex-col justify-between";
+                card.className = "habit-card glass-card p-5 rounded-2xl transition-all relative overflow-hidden group";
                 card.innerHTML = `
-                    <div>
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="text-3xl p-3 bg-[#1f1f1f] rounded-xl border border-[#262626]">${h.icono}</div>
-                            <div class="flex gap-1.5 mt-2">
-                                ${renderProgressDots(h.progreso)}
+                    <div class="flex items-center justify-between relative z-10">
+                        <div class="flex items-center gap-4">
+                            <div class="text-2xl w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/5">${h.icono}</div>
+                            <div>
+                                <h3 class="font-bold">${h.nombre}</h3>
+                                <p class="text-xs text-slate-500">Racha: ${h.racha} días</p>
                             </div>
                         </div>
-                        <h3 class="text-xl font-semibold mb-1">${h.nombre}</h3>
-                        <p class="text-[#636363] text-sm uppercase tracking-wider font-medium">${h.racha} Días • ${h.frecuencia}</p>
+                        <div class="flex items-center gap-3">
+                            <button onclick="markDone('${id}', ${h.progreso}, ${h.racha})" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-500/20">
+                                +1 LOGRO
+                            </button>
+                            <button onclick="deleteHabit('${id}')" class="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-500 p-2 transition-all">
+                                <i data-lucide="trash-2" size="18"></i>
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="mt-8 flex gap-3">
-                        <button onclick="logProgress('${id}', ${h.progreso}, ${h.racha})" 
-                            class="flex-1 bg-[#262626] hover:bg-[#333] py-2.5 rounded-lg text-sm font-semibold transition-all">
-                            Marcar hoy
-                        </button>
-                        <button onclick="deleteHabit('${id}')" class="p-2 text-[#444] hover:text-red-500 transition-all">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        </button>
+                    <div class="absolute bottom-0 left-0 h-1 bg-white/5 w-full">
+                        <div class="h-full bg-indigo-500 shadow-[0_0_10px_#6366f1] transition-all duration-700" style="width: ${h.progreso}%"></div>
                     </div>
                 `;
-                grid.appendChild(card);
+                container.appendChild(card);
             });
+            document.getElementById('stat-racha').innerText = `${bestRacha} Días`;
+            document.getElementById('stat-hoy').innerText = total;
             lucide.createIcons();
         });
 
-        // Lógica de progreso
-        window.logProgress = async (id, currentProg, currentRacha) => {
-            let nextProg = currentProg + 1;
+        window.markDone = async (id, currentProg, currentRacha) => {
+            let nextProg = currentProg + 25; // Sube de a 25%
             let nextRacha = currentRacha;
-            
-            if(nextProg > 5) {
-                nextProg = 0; // Reinicia el ciclo de puntos
-                nextRacha++;  // Aumenta la racha
+            if(nextProg > 100) {
+                nextProg = 0;
+                nextRacha++;
             }
-
-            await updateDoc(doc(db, "habitos", id), { 
-                progreso: nextProg,
-                racha: nextRacha
-            });
+            await updateDoc(doc(db, "habitos", id), { progreso: nextProg, racha: nextRacha });
         };
 
         window.deleteHabit = async (id) => {
-            if(confirm("¿Seguro que quieres eliminar este hábito?")) {
-                await deleteDoc(doc(db, "habitos", id));
-            }
+            if(confirm("¿Eliminar este hábito?")) await deleteDoc(doc(db, "habitos", id));
         };
+
+        // Gráfico Semanal
+        new Chart(document.getElementById('weeklyChart'), {
+            type: 'line',
+            data: {
+                labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
+                datasets: [{ data: [3, 5, 2, 6, 4, 7, 5], borderColor: '#6366f1', tension: 0.4, fill: true, backgroundColor: 'rgba(99, 102, 241, 0.05)', pointRadius: 0 }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569' } } } }
+        });
+
+        // Gráfico Dona
+        new Chart(document.getElementById('goalChart'), {
+            type: 'doughnut',
+            data: { datasets: [{ data: [78, 22], backgroundColor: ['#6366f1', '#1e293b'], borderWidth: 0, borderRadius: 5 }] },
+            options: { cutout: '85%', plugins: { tooltip: { enabled: false } } }
+        });
+
+        // Calendario Simple
+        const cal = document.getElementById('calendar-grid');
+        for(let i=1; i<=31; i++){
+            const d = document.createElement('div');
+            d.className = `aspect-square flex items-center justify-center rounded-lg ${i<12 ? 'calendar-day completed' : 'text-slate-600'}`;
+            d.innerText = i;
+            cal.appendChild(d);
+        }
     </script>
 </body>
 </html>
