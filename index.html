@@ -3,426 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bruno Tasks - Gemini AI Edition</title>
+    <title>Mi Búnker - Finanzas</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #ffffff; }
-        .priority-1 { color: #db4c3f; } /* Alta */
-        .priority-2 { color: #eb8909; } /* Media */
-        .priority-3 { color: #246fe0; } /* Baja */
-        .priority-4 { color: #808080; } /* Sin prioridad */
-        
-        .modal-overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); }
-        .sidebar-item.active { background-color: #ffefe0; color: #b03d32; font-weight: 600; }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        
-        .ai-loading {
-            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-
-        .custom-select-trigger {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 12px;
-            color: #4b5563;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: white;
-            position: relative;
-        }
-        .custom-select-trigger:hover {
-            background-color: #f3f4f6;
-        }
-    </style>
 </head>
-<body class="text-gray-800 overflow-hidden">
+<body class="bg-slate-50 text-slate-900 pb-20">
 
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-gray-50 border-r border-gray-200 hidden md:flex flex-col">
-            <div class="p-4 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center text-white text-[10px]">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    <span class="font-semibold text-sm">Bruno AI</span>
-                </div>
-                <button class="text-gray-400 hover:text-gray-600"><i class="far fa-bell"></i></button>
-            </div>
+    <div class="max-w-md mx-auto p-4">
+        <header class="py-6">
+            <h1 class="text-3xl font-extrabold text-slate-800">Mi Búnker 🏰</h1>
+            <p class="text-slate-500">Gestión de Finanzas Personales</p>
+        </header>
+
+        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8 rounded-3xl shadow-xl mb-8">
+            <p class="text-sm uppercase tracking-widest opacity-80 mb-1">Saldo Disponible</p>
+            <h2 id="balanceDisplay" class="text-4xl font-mono font-bold">$0.00</h2>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Nuevo Movimiento</label>
+            <input type="number" id="montoInput" placeholder="0.00" 
+                class="w-full text-3xl font-mono border-b-2 border-slate-100 py-2 mb-6 outline-none focus:border-blue-500 transition-colors">
             
-            <div class="flex-1 overflow-y-auto custom-scrollbar px-2">
-                <nav class="space-y-0.5">
-                    <button onclick="filterTasks('inbox')" id="btn-inbox" class="sidebar-item w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 transition text-sm active">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-inbox w-5 text-blue-500"></i>
-                            <span>Bandeja de entrada</span>
-                        </div>
-                        <span class="text-xs text-gray-400" id="inbox-count">0</span>
-                    </button>
-                    <button onclick="filterTasks('today')" id="btn-today" class="sidebar-item w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 transition text-sm">
-                        <div class="flex items-center gap-3">
-                            <i class="far fa-calendar w-5 text-green-600"></i>
-                            <span>Hoy</span>
-                        </div>
-                        <span class="text-xs text-gray-400" id="today-count">0</span>
-                    </button>
-                </nav>
-
-                <div class="mt-8">
-                    <div class="flex items-center justify-between px-2 mb-2 group">
-                        <span class="text-xs font-bold text-gray-500 uppercase">Mis Proyectos</span>
-                        <div class="flex items-center gap-2">
-                            <button onclick="promptNewProject()" title="Nuevo Proyecto" class="text-gray-400 hover:text-red-600 transition">
-                                <i class="fas fa-plus text-[10px]"></i>
-                            </button>
-                            <button onclick="suggestProjectsAI()" title="Sugerir con IA" class="text-purple-600 hover:text-purple-800 transition">
-                                <i class="fas fa-magic text-[10px]"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="project-list" class="space-y-0.5 text-sm">
-                        <!-- Proyectos dinámicos -->
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto bg-white">
-            <header class="p-8 max-w-3xl mx-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 id="current-view-title" class="text-xl font-bold">Bandeja de entrada</h1>
-                </div>
-
-                <div id="task-list" class="space-y-px">
-                    <!-- Tareas se cargan aquí -->
-                </div>
-
-                <button onclick="openModal()" class="mt-6 flex items-center gap-2 text-gray-400 hover:text-red-600 transition group w-full py-2">
-                    <span class="text-red-600 group-hover:bg-red-600 group-hover:text-white rounded-full w-5 h-5 flex items-center justify-center transition">
-                        <i class="fas fa-plus text-[10px]"></i>
-                    </span>
-                    <span class="text-sm font-medium">Añadir tarea</span>
+            <div class="flex gap-3">
+                <button onclick="registrar(true)" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-emerald-100">
+                    + Ingreso
                 </button>
-            </header>
-        </main>
-    </div>
-
-    <!-- Task Modal -->
-    <div id="taskModal" class="fixed inset-0 modal-overlay hidden flex items-start justify-center pt-24 px-4 z-50">
-        <div class="bg-white rounded-lg shadow-2xl w-full max-w-xl border border-gray-200">
-            <div class="p-4">
-                <div class="flex justify-between items-start">
-                    <input type="text" id="taskName" placeholder="¿Qué hay que hacer?" class="w-full text-lg font-semibold focus:outline-none mb-1">
-                    <button id="ai-suggest-btn" onclick="suggestStepsAI()" title="✨ Desglosar con IA" class="text-purple-500 hover:text-purple-700 p-2">
-                        <i class="fas fa-wand-magic-sparkles"></i>
-                    </button>
-                </div>
-                <textarea id="taskDesc" placeholder="Descripción o pasos sugeridos..." class="w-full text-sm focus:outline-none resize-none h-24 text-gray-500 border border-transparent focus:border-gray-100 p-1 rounded"></textarea>
-                
-                <div class="flex flex-wrap gap-3 mt-4 items-center">
-                    <!-- Fecha Mejorada -->
-                    <div class="custom-select-trigger" onclick="document.getElementById('taskDate').showPicker()">
-                        <i class="far fa-calendar text-green-600"></i>
-                        <span id="dateLabel">Fecha</span>
-                        <input type="date" id="taskDate" onchange="updateDateLabel()" class="absolute opacity-0 w-full h-full left-0 top-0 cursor-pointer">
-                    </div>
-                    
-                    <!-- Prioridad Mejorada -->
-                    <div class="relative group">
-                        <div class="custom-select-trigger">
-                            <i class="fas fa-flag" id="priorityIcon"></i>
-                            <span id="priorityLabel">Prioridad</span>
-                        </div>
-                        <select id="taskPriority" onchange="updatePriorityUI()" class="absolute inset-0 opacity-0 cursor-pointer">
-                            <option value="1">Alta (Roja)</option>
-                            <option value="2">Media (Naranja)</option>
-                            <option value="3" selected>Baja (Azul)</option>
-                            <option value="4">Ninguna (Gris)</option>
-                        </select>
-                    </div>
-
-                    <button onclick="autoPrioritizeAI()" class="text-[10px] text-purple-600 font-medium hover:bg-purple-50 px-2 py-1 rounded transition border border-purple-100 flex items-center gap-1">
-                        ✨ Inteligencia IA
-                    </button>
-                </div>
+                <button onclick="registrar(false)" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-rose-100">
+                    - Gasto
+                </button>
             </div>
-            
-            <div class="border-t border-gray-100 p-3 flex justify-between items-center bg-gray-50 rounded-b-lg">
-                <select id="taskProject" class="text-xs bg-transparent text-gray-500 focus:outline-none hover:bg-gray-200 p-1 rounded">
-                    <option value="Bandeja de entrada">Bandeja de entrada</option>
-                </select>
-                <div class="flex gap-2">
-                    <button onclick="closeModal()" class="px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-200 rounded-md transition">Cancelar</button>
-                    <button onclick="addTask()" class="px-3 py-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-md transition" id="btnAddTask">Añadir tarea</button>
-                </div>
-            </div>
+        </div>
+
+        <h3 class="text-lg font-bold text-slate-700 mb-4 px-2">Últimos movimientos</h3>
+        <div id="listaMovimientos" class="space-y-3">
+            <p class="text-center text-slate-400 py-10">Cargando datos...</p>
         </div>
     </div>
 
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-3 rounded-md shadow-xl transition-all duration-300 opacity-0 flex items-center gap-3 text-sm z-50">
-        <i class="fas fa-info-circle text-blue-400"></i>
-        <span id="toast-msg"></span>
-    </div>
+    <script type="module">
+        import { db } from './firebaseConfig.js';
+        import { collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxV3W0OA-coAa9THA_BW2IZE2xluaMkSHg1ecE62uZ_sNRDfPhz1wxLpW4-RoWAywbL/exec'; 
-        const apiKey = ""; 
-
-        let tasks = [];
-        let projects = [
-            { name: "Trabajo", icon: "💼" },
-            { name: "Personal", icon: "🏠" },
-            { name: "Estudios", icon: "📚" }
-        ];
-        let currentFilter = 'inbox';
-        let currentProjectValue = '';
-
-        // Formateador de fecha amigable
-        function formatDateFriendly(dateStr) {
-            if (!dateStr || dateStr === 'Sin fecha') return 'Sin fecha';
-            const date = new Date(dateStr + 'T12:00:00'); // Evitar problemas de zona horaria
-            const now = new Date();
+        // Función para guardar en la nube
+        window.registrar = async (esIngreso) => {
+            const input = document.getElementById('montoInput');
+            const monto = parseFloat(input.value);
             
-            const options = { day: '2-digit', month: 'short' };
-            if (date.getFullYear() !== now.getFullYear()) {
-                options.year = 'numeric';
-            }
-            
-            return date.toLocaleDateString('es-ES', options).replace('.', '');
-        }
+            if(!monto || monto <= 0) return alert("Ingresá un monto válido");
 
-        function updateDateLabel() {
-            const input = document.getElementById('taskDate');
-            const label = document.getElementById('dateLabel');
-            if (input.value) {
-                label.innerText = formatDateFriendly(input.value);
-            } else {
-                label.innerText = 'Fecha';
-            }
-        }
-
-        function updatePriorityUI() {
-            const select = document.getElementById('taskPriority');
-            const icon = document.getElementById('priorityIcon');
-            const label = document.getElementById('priorityLabel');
-            const val = select.value;
-            
-            icon.classList.remove('priority-1', 'priority-2', 'priority-3', 'priority-4');
-            icon.classList.add(`priority-${val}`);
-            
-            const texts = { "1": "Alta", "2": "Media", "3": "Baja", "4": "Prioridad" };
-            label.innerText = texts[val];
-        }
-
-        async function callGemini(prompt, systemPrompt = "Eres un asistente experto en productividad.") {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] }
-            };
             try {
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                await addDoc(collection(db, "finanzas"), {
+                    monto: monto,
+                    tipo: esIngreso ? 'ingreso' : 'gasto',
+                    fecha: new Date().toISOString(),
+                    timestamp: serverTimestamp()
                 });
-                const result = await response.json();
-                return result.candidates?.[0]?.content?.parts?.[0]?.text;
+                input.value = '';
+                input.focus();
             } catch (e) {
-                console.error(e);
-                return null;
+                console.error("Error al guardar: ", e);
             }
-        }
-
-        async function suggestStepsAI() {
-            const name = document.getElementById('taskName').value;
-            if (!name) return showToast("Escribe el nombre de la tarea");
-            const btn = document.getElementById('ai-suggest-btn');
-            btn.classList.add('ai-loading');
-            const prompt = `Divide en 4 pasos: "${name}". Solo guiones.`;
-            const res = await callGemini(prompt);
-            if (res) document.getElementById('taskDesc').value = res.trim();
-            btn.classList.remove('ai-loading');
-        }
-
-        async function autoPrioritizeAI() {
-            const name = document.getElementById('taskName').value;
-            if (!name) return;
-            const res = await callGemini(`Prioridad (1-4) para: ${name}. 1=Alta, 3=Baja. Responde solo el numero.`);
-            const num = res?.match(/[1-4]/);
-            if (num) {
-                document.getElementById('taskPriority').value = num[0];
-                updatePriorityUI();
-            }
-        }
-
-        async function suggestProjectsAI() {
-            showToast("✨ IA sugiriendo proyectos...");
-            const res = await callGemini("Sugiere 3 proyectos cortos. Formato: Nombre, Icono. Ejemplo: Fitness 🏋️. Solo los 3 resultados.");
-            if (res) {
-                const lines = res.split('\n').filter(l => l.trim());
-                lines.forEach(line => {
-                    const match = line.match(/(.+)\s([\uD800-\uDBFF].+)/) || [null, line.trim(), "📁"];
-                    projects.push({ name: match[1] || line.trim(), icon: match[2] || "📁" });
-                });
-                renderProjects();
-            }
-        }
-
-        function promptNewProject() {
-            const name = prompt("Nombre del nuevo proyecto:");
-            if (name) {
-                const icon = prompt("Emoji para el proyecto (opcional):", "📁");
-                projects.push({ name, icon: icon || "📁" });
-                renderProjects();
-            }
-        }
-
-        function editProject(index) {
-            const newIcon = prompt("Nuevo emoji para " + projects[index].name, projects[index].icon);
-            if (newIcon) {
-                projects[index].icon = newIcon;
-                renderProjects();
-            }
-        }
-
-        function openModal() {
-            document.getElementById('taskModal').classList.remove('hidden');
-            document.getElementById('taskName').focus();
-            populateProjectSelect();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('taskDate').value = today;
-            updateDateLabel();
-            updatePriorityUI();
-        }
-
-        function closeModal() {
-            document.getElementById('taskModal').classList.add('hidden');
-            document.getElementById('taskName').value = '';
-            document.getElementById('taskDesc').value = '';
-        }
-
-        function populateProjectSelect() {
-            const select = document.getElementById('taskProject');
-            select.innerHTML = '<option value="Bandeja de entrada">Bandeja de entrada</option>';
-            projects.forEach(p => {
-                select.innerHTML += `<option value="${p.name}">${p.icon} ${p.name}</option>`;
-            });
-        }
-
-        function renderProjects() {
-            const list = document.getElementById('project-list');
-            list.innerHTML = '';
-            projects.forEach((p, index) => {
-                const isActive = (currentFilter === 'project' && currentProjectValue === p.name) ? 'active' : '';
-                list.innerHTML += `
-                    <div class="sidebar-item w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 transition group ${isActive}">
-                        <button onclick="filterTasks('project', '${p.name}')" class="flex items-center gap-3 flex-1 text-left">
-                            <span class="text-lg">${p.icon}</span>
-                            <span class="truncate">${p.name}</span>
-                        </button>
-                        <button onclick="editProject(${index})" class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 px-1">
-                            <i class="fas fa-ellipsis-v text-[10px]"></i>
-                        </button>
-                    </div>
-                `;
-            });
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = msg;
-            toast.classList.remove('opacity-0');
-            setTimeout(() => toast.classList.add('opacity-0'), 3000);
-        }
-
-        async function addTask() {
-            const name = document.getElementById('taskName').value;
-            if (!name) return;
-
-            const newTask = {
-                id: Date.now().toString(),
-                text: name,
-                desc: document.getElementById('taskDesc').value,
-                date: document.getElementById('taskDate').value,
-                priority: document.getElementById('taskPriority').value,
-                project: document.getElementById('taskProject').value,
-                completed: false
-            };
-
-            tasks.unshift(newTask);
-            renderTasks(currentFilter, currentProjectValue);
-            closeModal();
-        }
-
-        function renderTasks(filter = 'inbox', value = '') {
-            const list = document.getElementById('task-list');
-            list.innerHTML = '';
-            
-            const todayStr = new Date().toISOString().split('T')[0];
-            
-            let filtered = tasks;
-            if (filter === 'project') filtered = tasks.filter(t => t.project === value);
-            if (filter === 'today') filtered = tasks.filter(t => t.date === todayStr);
-
-            // Actualizar contadores
-            document.getElementById('inbox-count').innerText = tasks.length;
-            document.getElementById('today-count').innerText = tasks.filter(t => t.date === todayStr).length;
-
-            filtered.forEach(task => {
-                const div = document.createElement('div');
-                div.className = "task-item flex items-start gap-3 p-3 border-b border-gray-100 hover:bg-gray-50 transition";
-                div.innerHTML = `
-                    <button onclick="completeTask('${task.id}')" class="mt-1 w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition hover:border-gray-500">
-                        <i class="fas fa-check text-[8px] text-transparent hover:text-gray-400"></i>
-                    </button>
-                    <div class="flex-1">
-                        <span class="text-[13px] font-medium text-gray-800">${task.text}</span>
-                        ${task.desc ? `<p class="text-[11px] text-gray-500 mt-0.5 whitespace-pre-line">${task.desc}</p>` : ''}
-                        <div class="flex items-center gap-3 mt-2">
-                            <span class="text-[10px] ${task.date === todayStr ? 'text-green-600 font-bold' : 'text-gray-500'}">
-                                <i class="far fa-calendar"></i> ${formatDateFriendly(task.date)}
-                            </span>
-                            <span class="text-[10px] text-gray-400"><i class="fas fa-flag priority-${task.priority}"></i> P${task.priority}</span>
-                            <span class="text-[10px] text-gray-400 ml-auto"># ${task.project}</span>
-                        </div>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        function completeTask(id) {
-            tasks = tasks.filter(t => t.id != id);
-            renderTasks(currentFilter, currentProjectValue);
-        }
-
-        function filterTasks(type, value = '') {
-            currentFilter = type;
-            currentProjectValue = value;
-            document.getElementById('current-view-title').innerText = type === 'inbox' ? "Bandeja de entrada" : (type === 'today' ? "Hoy" : value);
-            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-            renderTasks(type, value);
-            renderProjects();
-        }
-
-        window.onload = () => {
-            renderProjects();
-            renderTasks();
         };
+
+        // Escuchar cambios en tiempo real
+        const q = query(collection(db, "finanzas"), orderBy("timestamp", "desc"));
+        
+        onSnapshot(q, (snapshot) => {
+            const lista = document.getElementById('listaMovimientos');
+            let balanceTotal = 0;
+            lista.innerHTML = '';
+
+            if (snapshot.empty) {
+                lista.innerHTML = '<p class="text-center text-slate-400 py-10">No hay movimientos aún.</p>';
+            }
+
+            snapshot.forEach((doc) => {
+                const item = doc.data();
+                const esIngreso = item.tipo === 'ingreso';
+                balanceTotal += esIngreso ? item.monto : -item.monto;
+
+                const fechaFormateada = new Date(item.fecha).toLocaleDateString('es-AR', {
+                    day: '2-digit', month: 'short'
+                });
+
+                lista.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl flex justify-between items-center shadow-sm border border-slate-50 animate-in fade-in duration-500">
+                        <div class="flex items-center gap-3">
+                            <div class="${esIngreso ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} w-10 h-10 rounded-full flex items-center justify-center font-bold">
+                                ${esIngreso ? '↑' : '↓'}
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-700">${esIngreso ? 'Ingreso' : 'Gasto'}</p>
+                                <p class="text-xs text-slate-400">${fechaFormateada}</p>
+                            </div>
+                        </div>
+                        <span class="font-mono font-bold text-lg ${esIngreso ? 'text-emerald-500' : 'text-rose-500'}">
+                            ${esIngreso ? '+' : '-'}$${item.monto.toLocaleString()}
+                        </span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('balanceDisplay').innerText = `$${balanceTotal.toLocaleString()}`;
+        });
     </script>
 </body>
 </html>
