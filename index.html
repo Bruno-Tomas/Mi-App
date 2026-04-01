@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mi Bunker Personal</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        button { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Hola Bruno, ¿qué vamos a anotar?</h1>
+
+    <div class="card">
+        <h3>Nueva Tarea</h3>
+        <input type="text" id="tareaInput" placeholder="Ej: Comprar harina para la pizza">
+        <button onclick="guardarDato('Tareas', 'tareaInput')">Guardar Tarea</button>
+    </div>
+
+    <div class="card">
+        <h3>Gasto / Finanzas</h3>
+        <input type="text" id="finanzaInput" placeholder="Ej: 5000 - Mercado Pago">
+        <button onclick="guardarDato('Finanzas', 'finanzaInput')">Guardar Gasto</button>
+    </div>
+
+    <script>
+        async function guardarDato(seccion, inputId) {
+            const valor = document.getElementById(inputId).value;
+            const urlScript = "TU_URL_DE_APPS_SCRIPT_AQUI"; // Pegá acá la URL del Paso 1
+
+            const payload = {
+                seccion: seccion,
+                contenido: valor
+            };
+
+            // Enviamos los datos a Google Sheets
+            await fetch(urlScript, {
+                method: 'POST',
+                mode: 'no-cors', // Importante para Apps Script
+                body: JSON.stringify(payload)
+            });
+
+            alert("Enviado a " + seccion);
+            document.getElementById(inputId).value = "";
+        }
+    </script>
+</body>
+</html>
