@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hábitos - Construye tu Futuro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            height: 280px;
+            max-height: 350px;
+        }
+
+        .habit-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .habit-card.completed {
+            background-color: #E2E8E4;
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
+        .tab-btn {
+            transition: color 0.2s, transform 0.2s;
+        }
+        .tab-btn.active {
+            color: #5A7161;
+            transform: translateY(-2px);
+            font-weight: 600;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-[#EBEBEB] text-[#333333] flex justify-center items-center min-h-screen selection:bg-[#5A7161] selection:text-white">
+
+    <!-- Chosen Palette: Warm Neutrals & Sage Green (F9F7F3, 5A7161, E2E8E4, 333333) -->
+    <!-- Application Structure Plan: Mobile-first Android-style SPA. Bottom navigation divides app into 3 core task-oriented views: 'Hoy' (daily execution, removing friction), 'Progreso' (data visualization for psychological reward), and 'Ajustes' (management). This structure separates the act of *doing* from the act of *planning*, maximizing daily usability. -->
+    <!-- Visualization & Content Choices: Goal: Track Consistency -> Viz: Bar Chart (Weekly progress) & Doughnut Chart (Completion ratio) -> Interaction: Auto-updates on habit toggle, tooltips -> Justification: Visual evidence of streaks is the strongest psychological reward in habit formation. -> Library: Chart.js -> NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <div class="bg-[#F9F7F3] w-full max-w-md sm:h-[800px] h-screen sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col sm:border-[6px] sm:border-white">
+        
+        <header class="pt-10 pb-4 px-6 bg-white rounded-b-3xl shadow-sm z-10 flex justify-between items-center">
+            <div>
+                <p class="text-sm text-gray-500 font-medium tracking-wide uppercase" id="current-date-display">Cargando...</p>
+                <h1 class="text-2xl font-bold text-[#5A7161]" id="header-title">Mis Hábitos</h1>
+            </div>
+            <div class="w-10 h-10 bg-[#E2E8E4] rounded-full flex justify-center items-center text-xl shadow-inner">
+                🌱
+            </div>
+        </header>
+
+        <main id="main-content" class="flex-1 overflow-y-auto hide-scrollbar px-6 pt-6 pb-24 fade-in">
+            
+            <div id="view-dashboard" class="view-section">
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold mb-2">Ejecución Diaria</h2>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        El secreto del éxito a largo plazo está en la repetición constante. Concéntrate solo en marcar los hábitos de hoy. La consistencia reduce la fricción neuronal con el tiempo.
+                    </p>
+                </div>
+
+                <div class="mb-4 flex justify-between items-end">
+                    <p class="text-sm font-semibold text-gray-500">TUS TAREAS</p>
+                    <p class="text-xs font-bold text-[#5A7161] bg-[#E2E8E4] px-2 py-1 rounded-full" id="completion-badge">0/0 completados</p>
+                </div>
+                
+                <div id="habits-list" class="space-y-3">
+                </div>
+            </div>
+
+            <div id="view-stats" class="view-section hidden">
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold mb-2">Análisis de Progreso</h2>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Visualizar tu esfuerzo es una recompensa clave. Los datos a continuación muestran tu tasa de cumplimiento y rachas. Mantener la cadena visual evita que rompas el hábito.
+                    </p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm mb-5">
+                    <h3 class="text-sm font-semibold text-gray-500 mb-4 text-center">RENDIMIENTO DE LOS ÚLTIMOS 7 DÍAS</h3>
+                    <div class="chart-container">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm">
+                    <h3 class="text-sm font-semibold text-gray-500 mb-4 text-center">TASA DE ÉXITO GENERAL</h3>
+                    <div class="chart-container h-48 max-h-56">
+                        <canvas id="ratioChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-manage" class="view-section hidden">
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold mb-2">Diseño del Entorno</h2>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Gestiona tu identidad. Agrega hábitos pequeños y específicos (ej. "Leer 2 páginas" en lugar de "Leer más"). Si un hábito es muy difícil, elimínalo y crea una versión más pequeña.
+                    </p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm mb-6">
+                    <h3 class="text-sm font-semibold text-[#5A7161] mb-3">Agregar Nuevo Hábito</h3>
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <input type="text" id="new-habit-name" placeholder="Ej. Beber 2L de agua" class="w-full bg-[#F9F7F3] border border-gray-200 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-[#5A7161] focus:ring-1 focus:ring-[#5A7161] transition-colors">
+                        </div>
+                        <select id="new-habit-icon" class="bg-[#F9F7F3] border border-gray-200 rounded-xl px-2 text-xl focus:outline-none">
+                            <option value="💧">💧</option>
+                            <option value="📚">📚</option>
+                            <option value="🏃">🏃</option>
+                            <option value="🧘">🧘</option>
+                            <option value="🥗">🥗</option>
+                            <option value="💻">💻</option>
+                            <option value="💤">💤</option>
+                            <option value="📝">📝</option>
+                        </select>
+                    </div>
+                    <button id="btn-add-habit" class="mt-3 w-full bg-[#5A7161] text-white font-semibold py-3 rounded-xl hover:bg-[#4a5d50] active:scale-95 transition-all shadow-md">
+                        Crear Hábito
+                    </button>
+                </div>
+
+                <h3 class="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Tus Hábitos Actuales</h3>
+                <div id="manage-list" class="space-y-2">
+                </div>
+            </div>
+
+        </main>
+
+        <nav class="absolute bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 flex justify-around items-center pb-6 pt-4 px-2 z-20">
+            <button class="tab-btn active flex flex-col items-center gap-1 w-20 text-gray-400" data-target="dashboard">
+                <span class="text-2xl">📅</span>
+                <span class="text-[10px] uppercase font-bold tracking-wider">Hoy</span>
+            </button>
+            <button class="tab-btn flex flex-col items-center gap-1 w-20 text-gray-400" data-target="stats">
+                <span class="text-2xl">📈</span>
+                <span class="text-[10px] uppercase font-bold tracking-wider">Progreso</span>
+            </button>
+            <button class="tab-btn flex flex-col items-center gap-1 w-20 text-gray-400" data-target="manage">
+                <span class="text-2xl">⚙️</span>
+                <span class="text-[10px] uppercase font-bold tracking-wider">Ajustes</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        const state = {
+            habits: [
+                { id: 1, name: "Beber agua al despertar", icon: "💧", streak: 12, completedToday: false },
+                { id: 2, name: "Lectura (15 minutos)", icon: "📚", streak: 4, completedToday: true },
+                { id: 3, name: "Ejercicio físico", icon: "🏃", streak: 0, completedToday: false },
+                { id: 4, name: "Meditación breve", icon: "🧘", streak: 21, completedToday: true }
+            ],
+            currentView: 'dashboard',
+            mockHistory: [60, 80, 50, 100, 75, 40, 0] 
+        };
+
+        let weeklyChartInstance = null;
+        let ratioChartInstance = null;
+
+        function updateDate() {
+            const options = { weekday: 'long', month: 'long', day: 'numeric' };
+            const dateStr = new Date().toLocaleDateString('es-ES', options);
+            document.getElementById('current-date-display').textContent = dateStr;
+        }
+
+        function calculateProgress() {
+            if(state.habits.length === 0) return 0;
+            const completed = state.habits.filter(h => h.completedToday).length;
+            return (completed / state.habits.length) * 100;
+        }
+
+        function renderDashboard() {
+            const list = document.getElementById('habits-list');
+            list.innerHTML = '';
+            
+            const completedCount = state.habits.filter(h => h.completedToday).length;
+            document.getElementById('completion-badge').textContent = `${completedCount}/${state.habits.length} listos`;
+
+            if(state.habits.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-400 py-10">No hay hábitos. Ve a Ajustes para crear uno.</div>`;
+                return;
+            }
+
+            state.habits.forEach(habit => {
+                const card = document.createElement('div');
+                card.className = `habit-card bg-white p-4 rounded-2xl shadow-sm flex items-center justify-between cursor-pointer border border-transparent ${habit.completedToday ? 'completed border-[#c8d4cc]' : 'hover:border-gray-200'}`;
+                card.onclick = () => toggleHabit(habit.id);
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl flex justify-center items-center text-2xl ${habit.completedToday ? 'bg-white opacity-60' : 'bg-[#F9F7F3]'}">
+                            ${habit.icon}
+                        </div>
+                        <div>
+                            <h3 class="font-bold ${habit.completedToday ? 'text-gray-500 line-through' : 'text-gray-800'}">${habit.name}</h3>
+                            <p class="text-xs text-orange-500 font-semibold flex items-center gap-1 mt-0.5">
+                                🔥 ${habit.streak} días seguidos
+                            </p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full border-2 flex justify-center items-center text-sm ${habit.completedToday ? 'border-[#5A7161] bg-[#5A7161] text-white' : 'border-gray-300 text-transparent'}">
+                        ✔️
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function toggleHabit(id) {
+            const habit = state.habits.find(h => h.id === id);
+            if(habit) {
+                if(!habit.completedToday) {
+                    habit.completedToday = true;
+                    habit.streak += 1;
+                } else {
+                    habit.completedToday = false;
+                    habit.streak = Math.max(0, habit.streak - 1);
+                }
+                
+                state.mockHistory[6] = calculateProgress();
+                
+                renderDashboard();
+                if(state.currentView === 'stats') renderCharts();
+                renderManageList(); 
+            }
+        }
+
+        function renderManageList() {
+            const list = document.getElementById('manage-list');
+            list.innerHTML = '';
+            
+            if(state.habits.length === 0) {
+                list.innerHTML = `<p class="text-sm text-gray-400">Lista vacía.</p>`;
+                return;
+            }
+
+            state.habits.forEach(habit => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-gray-100";
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">${habit.icon}</span>
+                        <span class="font-medium text-sm text-gray-700">${habit.name}</span>
+                    </div>
+                    <button class="text-red-400 hover:text-red-600 p-2 text-lg active:scale-90 transition-transform" onclick="deleteHabit(${habit.id})">
+                        🗑️
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function addHabit() {
+            const nameInput = document.getElementById('new-habit-name');
+            const iconSelect = document.getElementById('new-habit-icon');
+            const name = nameInput.value.trim();
+            
+            if(name) {
+                state.habits.push({
+                    id: Date.now(),
+                    name: name,
+                    icon: iconSelect.value,
+                    streak: 0,
+                    completedToday: false
+                });
+                nameInput.value = '';
+                renderManageList();
+                renderDashboard();
+                state.mockHistory[6] = calculateProgress();
+                if(state.currentView === 'stats') renderCharts();
+            }
+        }
+
+        function deleteHabit(id) {
+            state.habits = state.habits.filter(h => h.id !== id);
+            renderManageList();
+            renderDashboard();
+            state.mockHistory[6] = calculateProgress();
+            if(state.currentView === 'stats') renderCharts();
+        }
+
+        function renderCharts() {
+            const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+            const ratioCtx = document.getElementById('ratioChart').getContext('2d');
+
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = '#888';
+
+            const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Hoy'];
+            
+            state.mockHistory[6] = calculateProgress();
+
+            if (weeklyChartInstance) weeklyChartInstance.destroy();
+            weeklyChartInstance = new Chart(weeklyCtx, {
+                type: 'bar',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: '% Completado',
+                        data: state.mockHistory,
+                        backgroundColor: (context) => {
+                            return context.dataIndex === 6 ? '#5A7161' : '#D4E0D7';
+                        },
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#333',
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: (ctx) => `${ctx.raw.toFixed(0)}% de éxito`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            max: 100, 
+                            grid: { display: true, color: '#f0f0f0', drawBorder: false },
+                            ticks: { stepSize: 25, callback: (value) => value + '%' }
+                        },
+                        x: { grid: { display: false, drawBorder: false } }
+                    }
+                }
+            });
+
+            const completed = state.habits.filter(h => h.completedToday).length;
+            const pending = state.habits.length - completed;
+
+            if (ratioChartInstance) ratioChartInstance.destroy();
+            ratioChartInstance = new Chart(ratioCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completados', 'Pendientes'],
+                    datasets: [{
+                        data: state.habits.length === 0 ? [0, 1] : [completed, pending],
+                        backgroundColor: ['#5A7161', '#F9F7F3'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: {
+                            backgroundColor: '#333',
+                            callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw}` }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupNavigation() {
+            const btns = document.querySelectorAll('.tab-btn');
+            const views = document.querySelectorAll('.view-section');
+            const title = document.getElementById('header-title');
+
+            const titles = {
+                'dashboard': 'Mis Hábitos',
+                'stats': 'Tu Progreso',
+                'manage': 'Ajustes'
+            };
+
+            btns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.getAttribute('data-target');
+                    state.currentView = target;
+                    
+                    btns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    views.forEach(v => {
+                        v.classList.add('hidden');
+                        v.classList.remove('fade-in');
+                    });
+                    
+                    const targetView = document.getElementById(`view-${target}`);
+                    targetView.classList.remove('hidden');
+                    
+                    setTimeout(() => targetView.classList.add('fade-in'), 10);
+
+                    title.textContent = titles[target];
+
+                    if (target === 'stats') {
+                        renderCharts();
+                    }
+                });
+            });
+        }
+
+        function init() {
+            updateDate();
+            setupNavigation();
+            renderDashboard();
+            renderManageList();
+            
+            document.getElementById('btn-add-habit').addEventListener('click', addHabit);
+            document.getElementById('new-habit-name').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addHabit();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
